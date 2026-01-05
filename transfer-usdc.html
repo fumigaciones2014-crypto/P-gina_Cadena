@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transferencia USDC - Red Base</title>
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.umd.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0052ff 0%, #00c6ff 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 500px;
+            padding: 40px;
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo h1 {
+            color: #0052ff;
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        
+        .logo .badge {
+            background: #0052ff;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: inline-block;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #0052ff;
+        }
+        
+        .wallet-info {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+            border-left: 4px solid #0052ff;
+        }
+        
+        .amount-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .amount-section input {
+            flex: 1;
+        }
+        
+        .max-btn {
+            background: #0052ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        
+        .max-btn:hover {
+            background: #0041cc;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(to right, #0052ff, #00c6ff);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 82, 255, 0.3);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .status {
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            display: none;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+        
+        .loading {
+            background: #e3f2fd;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            display: block;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .network-info {
+            background: #f0f7ff;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #0052ff;
+        }
+        
+        .balance-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .balance-info span {
+            font-weight: 600;
+            color: #0052ff;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .disclaimer {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>🔵 USDC Transfer</h1>
+            <div class="badge">Red Base</div>
+        </div>
+        
+        <div class="form-group">
+            <label for="senderWallet">Billetera de Origen</label>
+            <input type="text" id="senderWallet" placeholder="0x..." value="">
+            <div class="wallet-info">
+                Esta es tu billetera desde donde se enviarán los fondos. Conecta primero tu wallet.
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="recipientWallet">Billetera de Destino</label>
+            <input type="text" id="recipientWallet" placeholder="0x...">
+        </div>
+        
+        <div class="form-group">
+            <label for="amount">Cantidad de USDC a Transferir</label>
+            <div class="balance-info">
+                <div>Balance disponible: <span id="balance">0.00 USDC</span></div>
+                <div>Tasa: 1 USDC = 1.00 USD</div>
+            </div>
+            <div class="amount-section">
+                <input type="number" id="amount" placeholder="0.00" step="0.01" min="0.01">
+                <button class="max-btn" id="maxBtn">MAX</button>
+            </div>
+        </div>
+        
+        <div class="network-info">
+            🌐 Transacción en la Red Base (Red Principal)
+        </div>
+        
+        <button class="btn" id="connectBtn">🔗 Conectar Wallet</button>
+        <button class="btn" id="transferBtn" disabled>🚀 Transferir USDC</button>
+        
+        <div class="disclaimer">
+            ⚠️ Verifica dos veces las direcciones. Las transacciones en blockchain son irreversibles.
+            Asegúrate de tener ETH en Base para pagar las tarifas de gas.
+        </div>
+        
+        <div id="statusMessage" class="status"></div>
+        
+        <div class="footer">
+            <p>USDC es una stablecoin de Circle | Red Base de Coinbase</p>
+            <p>Tarifa estimada de gas: ~$0.01 - $0.05</p>
+        </div>
+    </div>
+
+    <script>
+        // Configuración
+        const CONFIG = {
+            NETWORK: {
+                name: 'Base',
+                chainId: '0x2105', // Base Mainnet
+                rpcUrl: 'https://mainnet.base.org',
+                explorer: 'https://basescan.org'
+            },
+            TOKENS: {
+                USDC: {
+                    address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC en Base Mainnet
+                    decimals: 6,
+                    symbol: 'USDC'
+                }
+            },
+            GAS_LIMIT: 100000
+        };
+
+        // Variables globales
+        let provider;
+        let signer;
+        let userAddress;
+        let usdcContract;
+
+        // Elementos DOM
+        const connectBtn = document.getElementById('connectBtn');
+        const transferBtn = document.getElementById('transferBtn');
+        const senderWalletInput = document.getElementById('senderWallet');
+        const recipientWalletInput = document.getElementById('recipientWallet');
+        const amountInput = document.getElementById('amount');
+        const maxBtn = document.getElementById('maxBtn');
+        const balanceSpan = document.getElementById('balance');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            // Verificar si MetaMask está instalado
+            if (typeof window.ethereum === 'undefined') {
+                showError('MetaMask no está instalado. Por favor, instálalo para continuar.');
+                connectBtn.disabled = true;
+                return;
+            }
+
+            // Verificar si hay una wallet conectada previamente
+            checkConnectedWallet();
+        });
+
+        // Conectar wallet
+        connectBtn.addEventListener('click', async () => {
+            try {
+                showLoading('Conectando con MetaMask...');
+                
+                // Solicitar conexión
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                
+                // Configurar provider y signer
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                signer = provider.getSigner();
+                userAddress = await signer.getAddress();
+                
+                // Actualizar UI
+                senderWalletInput.value = userAddress;
+                connectBtn.textContent = `✅ Conectado: ${userAddress.substring(0, 6)}...${userAddress.substring(38)}`;
+                connectBtn.style.background = 'linear-gradient(to right, #28a745, #20c997)';
+                
+                // Verificar red
+                await checkNetwork();
+                
+                // Inicializar contrato USDC
+                usdcContract = new ethers.Contract(
+                    CONFIG.TOKENS.USDC.address,
+                    [
+                        'function balanceOf(address owner) view returns (uint256)',
+                        'function transfer(address to, uint256 amount) returns (bool)',
+                        'function decimals() view returns (uint8)'
+                    ],
+                    signer
+                );
+                
+                // Obtener balance
+                await updateBalance();
+                
+                // Habilitar botón de transferencia
+                transferBtn.disabled = false;
+                
+                hideStatus();
+                
+                // Escuchar cambios en la red
+                window.ethereum.on('chainChanged', handleChainChanged);
+                window.ethereum.on('accountsChanged', handleAccountsChanged);
+                
+            } catch (error) {
+                showError(`Error al conectar: ${error.message}`);
+            }
+        });
+
+        // Botón de transferencia
+        transferBtn.addEventListener('click', async () => {
+            const recipient = recipientWalletInput.value.trim();
+            const amount = amountInput.value;
+            
+            // Validaciones
+            if (!ethers.utils.isAddress(recipient)) {
+                showError('Dirección de destino inválida');
+                return;
+            }
+            
+            if (!amount || parseFloat(amount) <= 0) {
+                showError('Por favor ingresa una cantidad válida');
+                return;
+            }
+            
+            if (recipient.toLowerCase() === userAddress.toLowerCase()) {
+                showError('No puedes enviar fondos a tu misma dirección');
+                return;
+            }
+            
+            // Confirmación
+            const confirmMsg = `¿Estás seguro de transferir ${amount} USDC a:\n${recipient}?\n\nTarifa de gas: ~$0.01 - $0.05`;
+            
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+            
+            // Realizar transferencia
+            await transferUSDC(recipient, amount);
+        });
+
+        // Botón MAX
+        maxBtn.addEventListener('click', async () => {
+            try {
+                if (!usdcContract || !userAddress) return;
+                
+                const balance = await usdcContract.balanceOf(userAddress);
+                const decimals = await usdcContract.decimals();
+                const maxAmount = ethers.utils.formatUnits(balance, decimals);
+                
+                // Dejar un pequeño margen para gas (0.01 USDC)
+                const safeAmount = Math.max(0, parseFloat(maxAmount) - 0.01);
+                
+                amountInput.value = safeAmount.toFixed(2);
+            } catch (error) {
+                console.error('Error al obtener balance máximo:', error);
+            }
+        });
+
+        // Función para transferir USDC
+        async function transferUSDC(recipient, amount) {
+            try {
+                showLoading('Preparando transacción...');
+                
+                // Convertir cantidad a unidades del token
+                const decimals = CONFIG.TOKENS.USDC.decimals;
+                const amountInUnits = ethers.utils.parseUnits(amount, decimals);
+                
+                // Obtener estimación de gas
+                const gasPrice = await provider.getGasPrice();
+                const gasEstimate = await usdcContract.estimateGas.transfer(recipient, amountInUnits);
+                
+                // Enviar transacción
+                showLoading('Firmando transacción... Por favor, confirma en MetaMask.');
+                
+                const tx = await usdcContract.transfer(recipient, amountInUnits, {
+                    gasLimit: gasEstimate.mul(120).div(100), // 20% más por seguridad
+                    gasPrice: gasPrice
+                });
+                
+                showLoading(`Transacción enviada! Hash: ${tx.hash.substring(0, 20)}... Esperando confirmación...`);
+                
+                // Esperar confirmación
+                const receipt = await tx.wait();
+                
+                // Mostrar éxito
+                const explorerLink = `${CONFIG.NETWORK.explorer}/tx/${tx.hash}`;
+                showSuccess(`
+                    ✅ Transacción completada exitosamente!<br><br>
+                    📊 Detalles:<br>
+                    • Cantidad: ${amount} USDC<br>
+                    • Destino: ${recipient.substring(0, 10)}...<br>
+                    • Hash: <a href="${explorerLink}" target="_blank">${tx.hash.substring(0, 20)}...</a><br>
+                    • Bloque: ${receipt.blockNumber}<br><br>
+                    <small>Puedes ver la transacción en BaseScan usando el enlace arriba.</small>
+                `);
+                
+                // Actualizar balance
+                await updateBalance();
+                amountInput.value = '';
+                
+            } catch (error) {
+                if (error.code === 4001) {
+                    showError('Transacción cancelada por el usuario');
+                } else if (error.message.includes('insufficient funds')) {
+                    showError('Fondos insuficientes para la transacción y tarifas de gas');
+                } else {
+                    showError(`Error en la transacción: ${error.message}`);
+                }
+            }
+        }
+
+        // Funciones auxiliares
+        async function checkNetwork() {
+            const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+            
+            if (chainId !== CONFIG.NETWORK.chainId) {
+                showError(`Por favor cambia a la red Base Mainnet (Chain ID: ${parseInt(CONFIG.NETWORK.chainId)})`);
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: CONFIG.NETWORK.chainId }],
+                    });
+                } catch (switchError) {
+                    showError('Error al cambiar a la red Base');
+                }
+            }
+        }
+
+        async function updateBalance() {
+            try {
+                const balance = await usdcContract.balanceOf(userAddress);
+                const decimals = await usdcContract.decimals();
+                const formattedBalance = ethers.utils.formatUnits(balance, decimals);
+                balanceSpan.textContent = `${parseFloat(formattedBalance).toFixed(2)} USDC`;
+            } catch (error) {
+                console.error('Error al actualizar balance:', error);
+            }
+        }
+
+        async function checkConnectedWallet() {
+            if (window.ethereum.selectedAddress) {
+                // Simular click para reconectar
+                setTimeout(() => connectBtn.click(), 500);
+            }
+        }
+
+        function handleChainChanged(chainId) {
+            window.location.reload();
+        }
+
+        function handleAccountsChanged(accounts) {
+            if (accounts.length === 0) {
+                showError('Por favor, conecta tu wallet de nuevo');
+                resetConnection();
+            } else {
+                window.location.reload();
+            }
+        }
+
+        function resetConnection() {
+            userAddress = null;
+            senderWalletInput.value = '';
+            connectBtn.textContent = '🔗 Conectar Wallet';
+            connectBtn.style.background = 'linear-gradient(to right, #0052ff, #00c6ff)';
+            transferBtn.disabled = true;
+            balanceSpan.textContent = '0.00 USDC';
+        }
+
+        // Funciones de estado
+        function showLoading(message) {
+            statusMessage.className = 'status loading';
+            statusMessage.innerHTML = `⏳ ${message}`;
+            statusMessage.style.display = 'block';
+        }
+
+        function showSuccess(message) {
+            statusMessage.className = 'status success';
+            statusMessage.innerHTML = message;
+            statusMessage.style.display = 'block';
+        }
+
+        function showError(message) {
+            statusMessage.className = 'status error';
+            statusMessage.innerHTML = `❌ ${message}`;
+            statusMessage.style.display = 'block';
+        }
+
+        function hideStatus() {
+            statusMessage.style.display = 'none';
+        }
+
+        // Validación en tiempo real
+        recipientWalletInput.addEventListener('input', (e) => {
+            const address = e.target.value.trim();
+            if (address.length > 0 && !ethers.utils.isAddress(address)) {
+                e.target.style.borderColor = '#dc3545';
+            } else {
+                e.target.style.borderColor = '#e1e5e9';
+            }
+        });
+
+        amountInput.addEventListener('input', (e) => {
+            const amount = parseFloat(e.target.value);
+            if (amount <= 0) {
+                e.target.style.borderColor = '#dc3545';
+            } else {
+                e.target.style.borderColor = '#e1e5e9';
+            }
+        });
+    </script>
+</body>
+</html>
